@@ -1,0 +1,52 @@
+services:
+  changedetection:
+    image: ghcr.io/dgtlmoon/changedetection.io:latest
+    container_name: changedetection
+    hostname: changedetection
+    volumes:
+      - changedetection-data:/datastore
+    environment:
+      # Habilita fetch via Chrome (Playwright protocol) usando o sockpuppetbrowser
+      - PLAYWRIGHT_DRIVER_URL=ws://browser-sockpuppet-chrome:3000
+      - TZ=America/Sao_Paulo
+      # Opcional (aparece nos alertas se você usar variáveis no body)
+      - BASE_URL=http://localhost:5000
+    restart: unless-stopped
+    depends_on:
+      browser-sockpuppet-chrome:
+        condition: service_started
+      notifier:
+        condition: service_started
+
+  # Chrome “real” para páginas com JS (portais normalmente precisam)
+  browser-sockpuppet-chrome:
+    image: dgtlmoon/sockpuppetbrowser:latest
+    container_name: browser-sockpuppet-chrome
+    hostname: browser-sockpuppet-chrome
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      - SCREEN_WIDTH=1920
+      - SCREEN_HEIGHT=1024
+      - SCREEN_DEPTH=16
+      - MAX_CONCURRENT_CHROME_PROCESSES=5
+    restart: unless-stopped
+
+  # Cola: recebe webhook e manda pro Telegram
+  notifier:
+    build: ./notifier
+    container_name: radar-notifier
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - WEBHOOK_TOKEN=${WEBHOOK_TOKEN}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - METRICS_ENABLED=${METRICS_ENABLED:-1}
+      - METRICS_PREFIX=${METRICS_PREFIX:-metrics:v1}
+      - METRICS_TTL_S=${METRICS_TTL_S:-604800}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  changedetection-data:
