@@ -1,4 +1,0 @@
-services/radar/.env
-.env
-__pycache__/
-*.pyc

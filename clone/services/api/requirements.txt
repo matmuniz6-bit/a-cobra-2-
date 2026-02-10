@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-asyncpg
-redis
-python-json-logger
-pypdf
-pdfplumber
-ocrmypdf
